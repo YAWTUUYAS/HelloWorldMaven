@@ -1,44 +1,36 @@
 pipeline {
     agent any
 
-    environment {
-        // Nom du Maven Tools configuré dans Manage Jenkins > Tools
-        MAVEN_HOME = tool 'Maven-3.9.6'
-
-        // Credentials Jenkins pour GitHub (ton token)
-        GIT_CREDS = 'new'
-
-        // URL de ton repo GitHub
-        REPO_URL = 'https://github.com/YAWTUUYAS/HelloWorldMaven.git'
+    tools {
+        maven 'apache-maven-3.9.6'
+        jdk 'jdk-17'
     }
 
-    triggers {
-        // Vérifier le dépôt toutes les minutes
-        pollSCM('* * * * *')
+    environment {
+        // Le token Sonar stocké dans Jenkins
+        SONAR_AUTH_TOKEN = credentials('SONAR_AUTH_TOKEN')
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                git branch: 'master',
-                    url: "${REPO_URL}",
-                    credentialsId: "${GIT_CREDS}"
+                git url: 'https://github.com/YAWTUUYAS/HelloWorldMaven.git', credentialsId: 'new'
             }
         }
 
         stage('Build') {
             steps {
-                withMaven(maven: 'Maven-3.9.6') {
-                    sh "${MAVEN_HOME}/bin/mvn clean compile"
+                withMaven(maven: 'apache-maven-3.9.6') {
+                    sh "mvn clean compile"
                 }
             }
         }
 
         stage('Test') {
             steps {
-                withMaven(maven: 'Maven-3.9.6') {
-                    sh "${MAVEN_HOME}/bin/mvn test"
+                withMaven(maven: 'apache-maven-3.9.6') {
+                    sh "mvn test"
                 }
             }
         }
@@ -46,18 +38,21 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar.tools.devops.****') {
-                    sh """
-                        sonar-scanner \
-                        -Dsonar.projectKey=myProject \
-                        -Dsonar.sources=./src
-                    """
+                    withMaven(maven: 'apache-maven-3.9.6') {
+                        sh """
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=myProject \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.login=$SONAR_AUTH_TOKEN
+                        """
+                    }
                 }
             }
         }
 
         stage("Quality Gate") {
             steps {
-                timeout(time: 1, unit: 'HOURS') {
+                timeout(time: 1, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -65,8 +60,8 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withMaven(maven: 'Maven-3.9.6') {
-                    sh "${MAVEN_HOME}/bin/mvn deploy"
+                withMaven(maven: 'apache-maven-3.9.6') {
+                    sh "mvn deploy"
                 }
             }
         }
@@ -74,13 +69,11 @@ pipeline {
         stage('Create Git Tag') {
             steps {
                 script {
-                    def tagName = "build-${env.BUILD_NUMBER}"
-
+                    TAG = "v1.${env.BUILD_NUMBER}"
                     sh """
                         git config user.email "jenkins@example.com"
                         git config user.name "Jenkins"
-
-                        git tag -a ${tagName} -m "Build ${env.BUILD_NUMBER}"
+                        git tag ${TAG}
                     """
                 }
             }
@@ -88,26 +81,19 @@ pipeline {
 
         stage('Push Git Tag') {
             steps {
-                script {
-                    def tagName = "build-${env.BUILD_NUMBER}"
-
-                    withCredentials([usernamePassword(credentialsId: "${GIT_CREDS}", usernameVariable: 'USER', passwordVariable: 'TOKEN')]) {
-
-                        sh """
-                            git push https://${USER}:${TOKEN}@github.com/YAWTUUYAS/HelloWorldMaven.git ${tagName}
-                        """
-                    }
-                }
+                sh """
+                    git push origin ${TAG}
+                """
             }
         }
     }
 
     post {
-        success {
-            echo "Pipeline finished successfully ✔"
-        }
         failure {
             echo "PIPELINE FAILED ❌"
+        }
+        success {
+            echo "PIPELINE SUCCESS ✔"
         }
     }
 }
