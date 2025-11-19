@@ -30,7 +30,7 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Package') {
             steps {
                 withMaven(maven: 'Maven-3.9.6') {
                     sh "mvn package"
@@ -53,19 +53,22 @@ pipeline {
 
         stage('Push Git Tag') {
             steps {
-                sh """
-                    git push origin ${TAG}
-                """
+                withCredentials([usernamePassword(credentialsId: 'new', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    sh """
+                        git push https://${GIT_USER}:${GIT_PASS}@github.com/YAWTUUYAS/HelloWorldMaven.git ${TAG}
+                    """
+                }
             }
         }
+
     }
 
     post {
-        failure {
-            echo "PIPELINE FAILED ❌"
-        }
         success {
-            echo "PIPELINE SUCCESS ✔"
+            echo "✔ PIPELINE SUCCESS"
+        }
+        failure {
+            echo "❌ PIPELINE FAILED"
         }
     }
 }
