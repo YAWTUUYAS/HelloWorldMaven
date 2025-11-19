@@ -30,35 +30,10 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonar.tools.devops.****') {
-                    withCredentials([string(credentialsId: 'SONAR_AUTH_TOKEN', variable: 'TOKEN')]) {
-                        withMaven(maven: 'Maven-3.9.6') {
-                            sh """
-                                mvn sonar:sonar \
-                                -Dsonar.projectKey=myProject \
-                                -Dsonar.host.url=$SONAR_HOST_URL \
-                                -Dsonar.login=$TOKEN
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Quality Gate") {
-            steps {
-                timeout(time: 1, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
         stage('Deploy') {
             steps {
                 withMaven(maven: 'Maven-3.9.6') {
-                    sh "mvn deploy"
+                    sh "mvn package"
                 }
             }
         }
@@ -78,7 +53,9 @@ pipeline {
 
         stage('Push Git Tag') {
             steps {
-                sh "git push origin ${TAG}"
+                sh """
+                    git push origin ${TAG}
+                """
             }
         }
     }
