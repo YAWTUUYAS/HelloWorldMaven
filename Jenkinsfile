@@ -43,8 +43,8 @@ pipeline {
                 script {
                     TAG = "v1.${env.BUILD_NUMBER}"
                     sh """
-                        git config user.email "jenkins@example.com"
-                        git config user.name "Jenkins"
+                        git config user.email "yassinebenaba17@gmail.com"
+                        git config user.name "YAWTUUYAS"
                         git tag ${TAG}
                     """
                 }
