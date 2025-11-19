@@ -7,7 +7,6 @@ pipeline {
     }
 
     environment {
-        // Le token Sonar stocké dans Jenkins
         SONAR_AUTH_TOKEN = credentials('SONAR_AUTH_TOKEN')
     }
 
@@ -21,7 +20,7 @@ pipeline {
 
         stage('Build') {
             steps {
-                withMaven(maven: 'apache-maven-3.9.6') {
+                withMaven(maven: 'Maven-3.9.6') {
                     sh "mvn clean compile"
                 }
             }
@@ -29,7 +28,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                withMaven(maven: 'apache-maven-3.9.6') {
+                withMaven(maven: 'Maven-3.9.6') {
                     sh "mvn test"
                 }
             }
@@ -38,7 +37,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar.tools.devops.****') {
-                    withMaven(maven: 'apache-maven-3.9.6') {
+                    withMaven(maven: 'Maven-3.9.6') {
                         sh """
                             mvn sonar:sonar \
                             -Dsonar.projectKey=myProject \
@@ -60,7 +59,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withMaven(maven: 'apache-maven-3.9.6') {
+                withMaven(maven: 'Maven-3.9.6') {
                     sh "mvn deploy"
                 }
             }
@@ -81,9 +80,7 @@ pipeline {
 
         stage('Push Git Tag') {
             steps {
-                sh """
-                    git push origin ${TAG}
-                """
+                sh "git push origin ${TAG}"
             }
         }
     }
