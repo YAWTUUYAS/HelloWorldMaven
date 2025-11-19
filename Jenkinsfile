@@ -6,10 +6,6 @@ pipeline {
         jdk 'jdk-21'
     }
 
-    environment {
-        SONAR_AUTH_TOKEN = credentials('SONAR_AUTH_TOKEN')
-    }
-
     stages {
 
         stage('Checkout') {
@@ -37,13 +33,15 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar.tools.devops.****') {
-                    withMaven(maven: 'Maven-3.9.6') {
-                        sh """
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=myProject \
-                            -Dsonar.host.url=$SONAR_HOST_URL \
-                            -Dsonar.login=$SONAR_AUTH_TOKEN
-                        """
+                    withCredentials([string(credentialsId: 'SONAR_AUTH_TOKEN', variable: 'TOKEN')]) {
+                        withMaven(maven: 'Maven-3.9.6') {
+                            sh """
+                                mvn sonar:sonar \
+                                -Dsonar.projectKey=myProject \
+                                -Dsonar.host.url=$SONAR_HOST_URL \
+                                -Dsonar.login=$TOKEN
+                            """
+                        }
                     }
                 }
             }
